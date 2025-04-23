@@ -18,6 +18,7 @@ class EmailRegistration:
         self.context = None # 添加浏览器上下文
         self.page = None
         self.captcha_handled = False
+        self.pages = []  # 存储所有创建的标签页
     
     def initialize(self):
         """初始化Playwright和浏览器"""
@@ -40,6 +41,10 @@ class EmailRegistration:
             # 从上下文中创建页面
             self.page = self.context.new_page()
             self.page.set_default_timeout(TIMEOUTS["page_load"])
+            
+            # 将初始页面添加到页面列表
+            self.pages.append(self.page)
+            
             self.logger.info("Chrome浏览器和上下文已初始化") # 更新日志消息
             return True
         except Exception as e:
@@ -263,19 +268,62 @@ class EmailRegistration:
             self.logger.error(f"检查注册结果失败: {e}")
             return False
     
+    def create_new_tab(self):
+        """创建新标签页并切换到该标签页"""
+        try:
+            self.logger.info("正在创建新标签页...")
+            # 从浏览器上下文创建新页面
+            new_page = self.context.new_page()
+            new_page.set_default_timeout(TIMEOUTS["page_load"])
+            
+            # 将新页面添加到页面列表
+            self.pages.append(new_page)
+            
+            # 切换到新页面
+            self.page = new_page
+            
+            self.logger.info("已创建新标签页并切换")
+            return True
+        except Exception as e:
+            self.logger.error(f"创建新标签页失败: {e}")
+            return False
+    
+    def switch_to_tab(self, index):
+        """切换到指定索引的标签页"""
+        try:
+            if not self.pages or index >= len(self.pages):
+                self.logger.error(f"无法切换到标签页 {index}，索引无效")
+                return False
+            
+            self.page = self.pages[index]
+            self.logger.info(f"已切换到标签页 {index}")
+            return True
+        except Exception as e:
+            self.logger.error(f"切换标签页失败: {e}")
+            return False
+    
+    def get_tab_count(self):
+        """获取当前标签页数量"""
+        return len(self.pages)
+    
     def cleanup(self):
         """清理资源"""
         try:
-            # 先关闭上下文
-            if self.context:
-                self.context.close()
-                self.logger.info("浏览器上下文已关闭")
-            
-            # 再关闭浏览器
             if self.browser:
+                self.logger.info("关闭浏览器...")
                 self.browser.close()
+                
             if self.playwright:
+                self.logger.info("关闭Playwright...")
                 self.playwright.stop()
-            self.logger.info("浏览器资源已清理")
+            
+            # 清空页面列表
+            self.pages = []
+            self.page = None
+            self.browser = None
+            self.context = None
+            self.playwright = None
+            
+            self.logger.info("资源已清理")
         except Exception as e:
-            self.logger.error(f"清理资源失败: {e}") 
+            self.logger.error(f"清理资源时出错: {e}") 

@@ -41,6 +41,6 @@ CONFIG = {
     "headless": False,  # 是否隐藏浏览器界面
     "slow_mo": 100,     # 操作间隔时间（毫秒）
     "retry_times": 3,   # 重试次数
-    "data_file": "../data/registered_accounts.csv",  # 账号保存路径
-    "default_phone": "13671856553"  # 默认手机号
+    "data_file": "./data/registered_accounts.csv",  # 账号保存路径
+    "default_phone": "19921680956"  # 默认手机号
 } 

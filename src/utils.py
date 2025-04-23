@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 def setup_logging():
     """设置日志系统"""
-    log_dir = "../data/logs"
+    log_dir = "./data/logs"
     os.makedirs(log_dir, exist_ok=True)
     log_file = f"{log_dir}/registration_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     
@@ -44,23 +44,42 @@ def generate_email_range(prefix_start, prefix_end, domain="@163.com"):
 
 def save_account(email, password, status="success", extra_info=None):
     """保存注册成功的账号信息"""
-    data_file = "../data/registered_accounts.csv"
+    data_file = "./data/registered_accounts.csv"
+    backup_file = "./data/registered_accounts_backup.csv"
     file_exists = os.path.isfile(data_file)
     
     # 创建data目录（如果不存在）
     os.makedirs(os.path.dirname(data_file), exist_ok=True)
     
-    with open(data_file, mode='a', newline='') as file:
-        fieldnames = ['email', 'password', 'status', 'timestamp', 'extra_info']
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
+    try:
+        with open(data_file, mode='a', newline='') as file:
+            fieldnames = ['email', 'password', 'status', 'timestamp', 'extra_info']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            
+            if not file_exists:
+                writer.writeheader()
+            
+            # 写入当前账号
+            row_data = {
+                'email': email,
+                'password': password,
+                'status': status,
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'extra_info': extra_info or ''
+            }
+            writer.writerow(row_data)
+            
+            # 立即刷新文件到磁盘
+            file.flush()
+            os.fsync(file.fileno())
         
-        if not file_exists:
-            writer.writeheader()
-        
-        writer.writerow({
-            'email': email,
-            'password': password,
-            'status': status,
-            'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'extra_info': extra_info or ''
-        }) 
+        # 创建备份文件
+        if os.path.isfile(data_file):
+            import shutil
+            shutil.copy2(data_file, backup_file)
+            
+        print(f"账号 {email} 的数据已成功保存并备份")
+        return True
+    except Exception as e:
+        print(f"保存账号 {email} 数据时出错: {e}")
+        return False 
